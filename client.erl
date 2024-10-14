@@ -6,8 +6,14 @@
 -record(client_st, {
     gui, % atom of the GUI process
     nick, % nick/username of the client
-    server % atom of the chat server
+    server, % atom of the chat server
+        % maybe not needed?
+    channels = [] % Keep a track of the channels that is being created
 }).
+
+% make use of request from genserver
+
+
 
 % Return an initial state record. This is called from GUI.
 % Do not change the signature of this function.
@@ -17,6 +23,8 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
         nick = Nick,
         server = ServerAtom
     }.
+
+
 
 % handle/2 handles each kind of request from GUI
 % Parameters:
@@ -28,15 +36,28 @@ initial_state(Nick, GUIAtom, ServerAtom) ->
 
 % Join channel
 handle(St, {join, Channel}) ->
-    % TODO: Implement this function
-    % {reply, ok, St} ;
-    {reply, {error, not_implemented, "join not implemented"}, St} ;
+    % Match on the current server and the join event
+    case (St#client_st.server, {join, St#client_st.nick, Channel}) of
+        % If the server and join parameters match, update the state
+        {Server, {join, Nick, Channel}} when Server =/= undefined ->
+            NewState = St#client_st{channel = Channel},
+            {reply, ok, NewState}; % Return ok with the updated state
+          % If no match, return an error message
+        _ ->{reply, error, "User couldn't join", St}
+    end;
 
 % Leave channel
 handle(St, {leave, Channel}) ->
     % TODO: Implement this function
-    % {reply, ok, St} ;
-    {reply, {error, not_implemented, "leave not implemented"}, St} ;
+    case list:member(Channel, St#client_st.channels) of 
+        true -> 
+            
+            
+            {reply, error, "User isn't in channel", St};
+
+        false -> {reply, error, "User isn't in channel", St}
+    
+    end.
 
 % Sending message (from GUI, to channel)
 handle(St, {message_send, Channel, Msg}) ->
